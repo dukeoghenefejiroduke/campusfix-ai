@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusFix AI — Equipment Troubleshooting Assistant</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <div class="badge-row">
+        <span class="hackathon-badge">OPEN//BUILD 2026</span>
+        <span class="mode-badge">Demo Mode (Open-Weight Ready)</span>
+      </div>
+      <h1>CampusFix AI</h1>
+      <p class="subtitle">Safe, mobile-friendly equipment troubleshooting for university students and facilities.</p>
+    </header>
+
+    <main class="main-content">
+      <!-- Safety Banner -->
+      <div class="safety-banner" id="safetyBanner">
+        <strong>⚠️ Safety Notice:</strong> Never touch live electrical components, open electrical panels, or perform dangerous repairs. If you notice smoke, burning smells, or exposed wires, keep away and contact emergency campus personnel immediately.
+      </div>
+
+      <!-- Troubleshooting Form -->
+      <section class="card form-card">
+        <h2>Describe Equipment Problem</h2>
+        <form id="diagnoseForm">
+          <div class="form-group">
+            <label for="category">Equipment Category <span class="required">*</span></label>
+            <select id="category" name="category" required>
+              <option value="" disabled selected>-- Select Equipment Type --</option>
+              <option value="electrical">⚡ Electrical Equipment & Outlets</option>
+              <option value="water-pump">💧 Water Pump & Pressure Systems</option>
+              <option value="plumbing">🚰 Plumbing & Drains</option>
+              <option value="cooling">❄️ Cooling & HVAC Equipment</option>
+              <option value="other">🔧 Other Campus Equipment</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Problem Description <span class="required">*</span></label>
+            <textarea id="description" name="description" rows="4" placeholder="Describe what is happening (e.g., pump making loud humming noise but not pumping water, outlet sparking, AC blowing warm air)..." required></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="symptoms">Observed Symptoms (Optional)</label>
+              <input type="text" id="symptoms" name="symptoms" placeholder="e.g., humming sound, flashing lights, water pooling">
+            </div>
+            <div class="form-group half">
+              <label for="startDate">When Did It Start? (Optional)</label>
+              <input type="text" id="startDate" name="startDate" placeholder="e.g., Today at 2 PM, 3 days ago">
+            </div>
+          </div>
+
+          <button type="submit" id="submitBtn" class="btn primary-btn">
+            <span class="btn-text">Analyze Problem & Safety Guide</span>
+            <span class="spinner" id="btnSpinner" hidden></span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Error State -->
+      <div id="errorContainer" class="error-container" hidden>
+        <p id="errorMessage"></p>
+      </div>
+
+      <!-- Results Section -->
+      <section id="resultsSection" class="card results-card" hidden>
+        <div class="results-header">
+          <h2>Diagnosis & Action Guide</h2>
+          <span id="urgencyBadge" class="urgency-badge">Medium</span>
+        </div>
+
+        <div class="result-block">
+          <h3>🔍 Possible Causes</h3>
+          <ul id="causesList"></ul>
+        </div>
+
+        <div class="result-block">
+          <h3>🛡️ Safe Preliminary Checks</h3>
+          <ul id="checksList"></ul>
+        </div>
+
+        <div class="result-block highlight-block">
+          <h3>📞 When to Contact a Technician</h3>
+          <p id="contactText"></p>
+        </div>
+
+        <div class="result-block warning-block">
+          <h3>⚠️ Safety Warning</h3>
+          <p id="resultSafetyText"></p>
+        </div>
+
+        <!-- Maintenance Report Output -->
+        <div class="report-section">
+          <div class="report-header">
+            <h3>📋 Maintenance Report (Ready to Copy)</h3>
+            <button type="button" id="copyBtn" class="btn secondary-btn">Copy Report</button>
+          </div>
+          <textarea id="reportTextarea" readonly rows="6"></textarea>
+          <span id="copyFeedback" class="copy-feedback" hidden>Copied to clipboard!</span>
+        </div>
+
+        <div class="model-meta">
+          <small id="modelMetaText"></small>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>CampusFix AI — OPEN//BUILD 2026 Hackathon Project. Built with Node.js built-in modules.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

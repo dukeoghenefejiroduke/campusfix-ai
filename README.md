@@ -1,30 +1,32 @@
-# CampusFix AI
+# CampusFix AI — Campus Equipment Troubleshooting Assistant
 
-> **OPEN//BUILD 2026 Hackathon Project**  
-> Lightweight, mobile-friendly equipment troubleshooting web assistant for university students and campus facilities.
+> A lightweight, mobile-friendly prototype that offers preliminary troubleshooting guidance, safety warnings, maintenance reports, and server-mediated outage notifications.
 
 ---
 
-## Project Purpose & Problem Statement
-University dorms, labs, and campus buildings rely heavily on everyday equipment—such as water pumps, electrical outlets, plumbing systems, and HVAC cooling units. When equipment malfunctions, students often lack technical guidance on safe preliminary checks and struggle to provide clear reports to maintenance technicians. 
+## Overview & How It Works
+University dorms, labs, and campus buildings rely on everyday equipment (water pumps, electrical outlets, plumbing, HVAC cooling). When equipment malfunctions, students need safe preliminary guidance and clear reporting tools.
 
-**CampusFix AI** bridges this gap by providing an instant, mobile-optimized troubleshooting assistant that guides users through safe diagnostic steps, assesses urgency, generates copy-pasteable maintenance reports, and strictly enforces safety protocols against electrical and water hazards.
+**CampusFix AI** provides:
+1. **Local Rules-Based Diagnostic Engine & Remote Model Integration**: Evaluates problems using deterministic safety rules or a configured remote OpenAI-compatible API endpoint (such as Groq using model `openai/gpt-oss-20b`).
+2. **TF-IDF Text-Similarity Precedents (`tfidfEngine.js`)**: Performs vector space cosine similarity matching against a small set of illustrative example records in pure Node.js. These are illustrative examples, not verified campus maintenance records.
+3. **Server-Mediated Outage Notifications**: Broadcasts outage reports to clients connected to the same running server via Server-Sent Events (SSE). This is in-memory broadcasting, not peer-to-peer networking, and reports are not persisted across restarts.
+4. **Authoritative Safety Guardrails**: Deterministic safety post-processing ensures hazardous conditions (sparks, smoke, burning smells) automatically trigger Emergency urgency and mandatory safety instructions, filtering out any unsafe user actions.
+5. **Zero-Dependency Architecture**: Built entirely with Node.js built-in modules (`http`, `fs`, `path`) with < 1 MB storage footprint.
 
 ---
 
 ## Features
-- **Mobile-Optimized Interface:** Designed for narrow Android phone screens and fast loading on mobile browsers.
-- **Categorized Troubleshooting:** Covers electrical equipment, water pumps, plumbing, cooling/HVAC, and other campus hardware.
-- **Urgency Assessment & Safety Guardrails:** Immediately flags critical electrical dangers (sparks, smoke, burning smells) and recommends safe isolation and emergency technician contact.
-- **Copyable Maintenance Report:** Instantly compiles a structured summary report that students can copy and send to facilities staff.
-- **Zero-Dependency Architecture:** Built entirely with Node.js built-in modules (`http`, `fs`, `path`)—no external npm dependencies, databases, Docker, or build steps required.
+- **Mobile-Optimized PWA:** Offline caching via Service Worker (`campusfix-v3`) and Web App Manifest.
+- **Hybrid Troubleshooting:** Uses remote model API when configured, with seamless fallback to the local rules engine.
+- **In-Memory IP Rate Limiting:** Applies in-memory request rate limits as a basic safeguard.
+- **Copyable Maintenance Reports & Outage Broadcasts:** Instantly generates structured logs and notifies connected clients.
 
 ---
 
 ## Requirements
 - **Node.js:** v25.8.2 (or any modern Node.js v18+ runtime).
 - **Environment:** Termux (Android), Linux, macOS, or Windows.
-- **Storage:** Minimal footprint (< 1 MB).
 
 ---
 
@@ -45,41 +47,32 @@ University dorms, labs, and campus buildings rely heavily on everyday equipment�
 
 ---
 
-## Testing Instructions
-
-### 1. Health Check API
-Verify the server is running correctly:
+## Running the Test Suite
 ```bash
-curl -i http://localhost:3000/api/health
+node test.js
 ```
-
-### 2. Diagnosis API Test
-Test the diagnostic endpoint via `curl`:
-```bash
-curl -X POST http://localhost:3000/api/diagnose \
-  -H "Content-Type: application/json" \
-  -d '{"category": "electrical", "description": "Outlet is sparking and smells like burning plastic"}'
-```
-
-### 3. Frontend Testing
-Open `http://localhost:3000` in your browser (or mobile device), select an equipment category, enter a problem description, and click **Analyze Problem & Safety Guide**. Test the "Copy Report" button.
 
 ---
 
-## Current Limitations & Demo Mode Note
-- **Demo Troubleshooting Mode:** The current implementation uses a robust rules-based diagnostic engine designed to demonstrate full application workflow, UI/UX polish, and safety guardrails.
-- **Open-Weight Model Integration:** **The current demo mode is NOT yet connected to an external open-weight model API.** The backend architecture is modularly prepared (`modelInfo` metadata and structured JSON API) so an eligible open-weight model provider can be connected in future updates without rewriting frontend components.
+## Connecting a Compatible Model API (Optional)
+To connect a remote OpenAI-compatible model API (such as Groq), set the following environment variables (or copy from `.env.example` to `.env`):
+```bash
+export OPEN_WEIGHT_API_URL="https://api.groq.com/openai/v1/chat/completions"
+export OPEN_WEIGHT_API_KEY="your-api-key-here"
+export OPEN_WEIGHT_MODEL_NAME="openai/gpt-oss-20b"
+node server.js
+```
+*If not configured or unreachable, CampusFix AI automatically falls back to its local rules engine.*
 
 ---
 
-## Open-Weight Model Documentation (To Be Completed)
-*This section will be updated once an open-weight model is integrated for the hackathon submission:*
-- **Selected Model:** *(Pending verification)*
-- **Provider / Host:** *(Pending verification)*
-- **Licence:** *(Pending verification)*
-- **Integration Details:** *(Pending API key and endpoint configuration)*
+## Model Use, Limitations & Safety
+- Results are preliminary guidance, not confirmed diagnoses.
+- Deterministic safety rules override model output during hazards, but automated checks cannot identify every hazard.
+- Never touch live electrical equipment, open panels, or attempt repairs.
+- The system does not replace qualified maintenance personnel or emergency services.
 
 ---
 
 ## Acknowledgements & AI-Assisted Development
-Developed for the OPEN//BUILD 2026 hackathon. AI-assisted coding tools were utilized to accelerate development while ensuring strict adherence to offline/low-storage constraints and robust safety standards.
+Developed for the OPEN//BUILD 2026 project. Built with Node.js built-in modules and Web APIs.

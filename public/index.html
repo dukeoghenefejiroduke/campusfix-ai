@@ -3,60 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CampusFix AI — Equipment Troubleshooting Assistant</title>
+  <title>CampusFix AI — Equipment Diagnostics & Outage Stream</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <div class="app-container">
-    <header class="header">
-      <div class="badge-row">
-        <span class="hackathon-badge">OPEN//BUILD 2026</span>
-        <span class="mode-badge">Demo Mode (Open-Weight Ready)</span>
+  <div class="app-shell">
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <span class="brand-icon">⚡</span>
+        <span class="brand-title">CampusFix <span class="highlight">AI</span></span>
       </div>
-      <h1>CampusFix AI</h1>
-      <p class="subtitle">Safe, mobile-friendly equipment troubleshooting for university students and facilities.</p>
+      <div class="nav-badges">
+        <span class="badge hackathon-badge">OPEN//BUILD 2026</span>
+        <span class="badge mesh-badge" id="meshStatusBadge"><span class="pulse-dot"></span> Server Status</span>
+      </div>
     </header>
 
-    <main class="main-content">
+    <main class="main-container">
+      <!-- Hero Banner -->
+      <section class="hero-section">
+        <h1>Campus Equipment Troubleshooting Assistant</h1>
+        <p>Safe troubleshooting guidance, remote model integration, illustrative text-similarity matching, and server-mediated outage notifications.</p>
+      </section>
+
       <!-- Safety Banner -->
       <div class="safety-banner" id="safetyBanner">
-        <strong>⚠️ Safety Notice:</strong> Never touch live electrical components, open electrical panels, or perform dangerous repairs. If you notice smoke, burning smells, or exposed wires, keep away and contact emergency campus personnel immediately.
+        <div class="safety-icon">⚠️</div>
+        <div class="safety-text">
+          <strong>CRITICAL SAFETY MANDATE:</strong> Never touch live electrical components, open panels, or attempt repairs. Sparking, smoke, or burning smells require immediate area evacuation and facilities contact.
+        </div>
       </div>
 
-      <!-- Troubleshooting Form -->
+      <!-- Live Campus Outage Stream Ticker -->
+      <section class="card mesh-card">
+        <div class="card-header-flex">
+          <h2>📡 Server-Mediated Outage Notifications</h2>
+          <span class="mesh-count" id="meshCount">0 Active Clients</span>
+        </div>
+        <div id="meshTicker" class="mesh-ticker">
+          <p class="mesh-placeholder">Listening for real-time outage reports served by this server...</p>
+        </div>
+      </section>
+
+      <!-- Interactive Troubleshooting Form -->
       <section class="card form-card">
-        <h2>Describe Equipment Problem</h2>
+        <h2>🛠️ Equipment Diagnostic Hub</h2>
         <form id="diagnoseForm">
+          <!-- Visual Category Selector Grid -->
           <div class="form-group">
-            <label for="category">Equipment Category <span class="required">*</span></label>
-            <select id="category" name="category" required>
-              <option value="" disabled selected>-- Select Equipment Type --</option>
-              <option value="electrical">⚡ Electrical Equipment & Outlets</option>
-              <option value="water-pump">💧 Water Pump & Pressure Systems</option>
-              <option value="plumbing">🚰 Plumbing & Drains</option>
-              <option value="cooling">❄️ Cooling & HVAC Equipment</option>
-              <option value="other">🔧 Other Campus Equipment</option>
-            </select>
+            <label>Select Equipment Category <span class="required">*</span></label>
+            <div class="category-grid" id="categoryGrid">
+              <div class="category-tile" data-value="electrical">
+                <span class="tile-icon">⚡</span>
+                <span class="tile-title">Electrical</span>
+              </div>
+              <div class="category-tile" data-value="water-pump">
+                <span class="tile-icon">💧</span>
+                <span class="tile-title">Water Pump</span>
+              </div>
+              <div class="category-tile" data-value="plumbing">
+                <span class="tile-icon">🚰</span>
+                <span class="tile-title">Plumbing</span>
+              </div>
+              <div class="category-tile" data-value="cooling">
+                <span class="tile-icon">❄️</span>
+                <span class="tile-title">HVAC Cooling</span>
+              </div>
+              <div class="category-tile" data-value="other">
+                <span class="tile-icon">🔧</span>
+                <span class="tile-title">Other Gear</span>
+              </div>
+            </div>
+            <input type="hidden" id="category" name="category" required>
           </div>
 
           <div class="form-group">
             <label for="description">Problem Description <span class="required">*</span></label>
-            <textarea id="description" name="description" rows="4" placeholder="Describe what is happening (e.g., pump making loud humming noise but not pumping water, outlet sparking, AC blowing warm air)..." required></textarea>
+            <textarea id="description" name="description" rows="4" placeholder="Describe what is happening (e.g., pump making humming noise, outlet sparking, AC blowing warm air)..." required></textarea>
+          </div>
+
+          <!-- Acoustic Audio Spectrogram Analyzer -->
+          <div class="form-group acoustic-group">
+            <div class="acoustic-header">
+              <label>🎙️ Acoustic FFT Frequency Spectrogram (Optional)</label>
+              <button type="button" id="recordAudioBtn" class="btn secondary-btn">Record 3s Audio</button>
+            </div>
+            <span id="audioStatus" class="audio-status">Hold phone near equipment to record audio fingerprint</span>
+            <div id="freqVisualizerContainer" class="freq-visualizer-container" hidden>
+              <canvas id="audioCanvas" width="300" height="60"></canvas>
+              <p class="freq-result">Dominant Frequency: <strong id="dominantFreq">0 Hz</strong> — <span id="freqDiagnosis">Analyzing...</span></p>
+            </div>
           </div>
 
           <div class="form-row">
             <div class="form-group half">
               <label for="symptoms">Observed Symptoms (Optional)</label>
-              <input type="text" id="symptoms" name="symptoms" placeholder="e.g., humming sound, flashing lights, water pooling">
+              <input type="text" id="symptoms" name="symptoms" placeholder="e.g., humming, flashing, pooling">
             </div>
             <div class="form-group half">
               <label for="startDate">When Did It Start? (Optional)</label>
-              <input type="text" id="startDate" name="startDate" placeholder="e.g., Today at 2 PM, 3 days ago">
+              <input type="text" id="startDate" name="startDate" placeholder="e.g., Today at 2 PM">
             </div>
           </div>
 
           <button type="submit" id="submitBtn" class="btn primary-btn">
-            <span class="btn-text">Analyze Problem & Safety Guide</span>
+            <span class="btn-text">Run Diagnosis & Similarity Match</span>
             <span class="spinner" id="btnSpinner" hidden></span>
           </button>
         </form>
@@ -75,7 +128,7 @@
         </div>
 
         <div class="result-block">
-          <h3>🔍 Possible Causes</h3>
+          <h3>🔍 Possible Root Causes</h3>
           <ul id="causesList"></ul>
         </div>
 
@@ -84,13 +137,19 @@
           <ul id="checksList"></ul>
         </div>
 
+        <!-- TF-IDF Text Similarity Precedents -->
+        <div class="result-block memory-block" id="memoryBlock" hidden>
+          <h3>🧠 Illustrative Text-Similarity Precedents</h3>
+          <div id="memoryList"></div>
+        </div>
+
         <div class="result-block highlight-block">
           <h3>📞 When to Contact a Technician</h3>
           <p id="contactText"></p>
         </div>
 
         <div class="result-block warning-block">
-          <h3>⚠️ Safety Warning</h3>
+          <h3>⚠️ Authoritative Safety Guardrail</h3>
           <p id="resultSafetyText"></p>
         </div>
 
@@ -98,10 +157,14 @@
         <div class="report-section">
           <div class="report-header">
             <h3>📋 Maintenance Report (Ready to Copy)</h3>
-            <button type="button" id="copyBtn" class="btn secondary-btn">Copy Report</button>
+            <div class="report-actions">
+              <button type="button" id="broadcastBtn" class="btn secondary-btn broadcast-btn">Broadcast Notice</button>
+              <button type="button" id="copyBtn" class="btn secondary-btn">Copy Report</button>
+            </div>
           </div>
           <textarea id="reportTextarea" readonly rows="6"></textarea>
           <span id="copyFeedback" class="copy-feedback" hidden>Copied to clipboard!</span>
+          <span id="broadcastFeedback" class="copy-feedback" hidden>Broadcasted to outage stream!</span>
         </div>
 
         <div class="model-meta">
@@ -111,7 +174,7 @@
     </main>
 
     <footer class="footer">
-      <p>CampusFix AI — OPEN//BUILD 2026 Hackathon Project. Built with Node.js built-in modules.</p>
+      <p>CampusFix AI — OPEN//BUILD 2026 Project. Built with Node.js built-in modules.</p>
     </footer>
   </div>
 

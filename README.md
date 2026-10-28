@@ -1,6 +1,6 @@
 # CampusFix AI — Campus Equipment Troubleshooting Assistant
 
-> A lightweight, mobile-friendly prototype that offers preliminary troubleshooting guidance, safety warnings, maintenance reports, and server-mediated outage notifications.
+> A lightweight, mobile-friendly prototype that offers preliminary troubleshooting guidance, safety warnings, maintenance reports, persistent server-mediated outage notifications, and TF-IDF semantic maintenance memory.
 
 ---
 
@@ -8,25 +8,28 @@
 University dorms, labs, and campus buildings rely on everyday equipment (water pumps, electrical outlets, plumbing, HVAC cooling). When equipment malfunctions, students need safe preliminary guidance and clear reporting tools.
 
 **CampusFix AI** provides:
-1. **Local Rules-Based Diagnostic Engine & Remote Model Integration**: Evaluates problems using deterministic safety rules or a configured remote OpenAI-compatible API endpoint (such as Groq using model `openai/gpt-oss-20b`).
-2. **TF-IDF Text-Similarity Precedents (`tfidfEngine.js`)**: Performs vector space cosine similarity matching against a diverse set of illustrative example records in pure Node.js. These are illustrative examples, not verified campus maintenance records.
-3. **Integrated Acoustic-Semantic Diagnostics**: Correlates browser-side Web Audio API FFT frequency peak observations with semantic maintenance precedents to provide multi-modal supporting context.
-4. **Server-Mediated Outage Notifications**: Broadcasts outage reports to clients connected to the same running server via Server-Sent Events (SSE). This is in-memory broadcasting, not peer-to-peer networking, and reports are not persisted across restarts.
-5. **Authoritative Safety Guardrails & Vague Input Clarification**: Deterministic safety post-processing ensures hazardous conditions (sparks, smoke, burning smells) automatically trigger Emergency urgency and mandatory safety instructions, filtering out any unsafe user actions (such as touching wires or resetting circuit breakers). Vague reports ("Something is wrong") prompt for specific clarification rather than fabricating diagnoses.
-6. **Zero-Dependency Architecture**: Built entirely with Node.js built-in modules (`http`, `fs`, `path`) with < 1 MB storage footprint.
+1. **Local Rules-Based Diagnostic Engine & Remote Model Integration**: Evaluates problems using deterministic safety rules or a configured remote OpenAI-compatible API endpoint (such as Groq using model `openai/gpt-oss-20b`). Features markdown JSON response cleaning, automatic transient timeout retries, conversational chat memory support, and `/api/ai/status` diagnostics.
+2. **TF-IDF Semantic Maintenance Engine (`tfidfEngine.js`)**: Performs vector space cosine similarity matching against 25+ comprehensive, realistic campus maintenance records spanning water pumps, electrical substations, HVAC chillers, plumbing, and lab facilities with category-compatible preference and strict relevance filtering.
+3. **Integrated Acoustic-Semantic Diagnostics**: Correlates browser-side Web Audio API FFT frequency peak observations with semantic maintenance precedents to provide multi-modal supporting context (with strict validation rejecting zero/invalid measurements).
+4. **Persistent Server-Mediated Outage Notifications**: Broadcasts outage reports to connected clients via Server-Sent Events (SSE) and persists alerts in a local JSON file (`outages.json`), automatically replaying recent historical alerts upon client connection (`/api/outages/history`).
+5. **Authoritative Safety Guardrails & Vague Input Clarification**: Deterministic safety post-processing ensures hazardous conditions (sparks, smoke, burning smells) automatically trigger Emergency urgency and mandatory safety instructions, filtering out any unsafe user actions (such as touching wires or resetting circuit breakers). Vague reports prompt for specific clarification rather than fabricating diagnoses.
+6. **Zero-Dependency Architecture**: Built entirely with Node.js built-in modules (`http`, `fs`, `path`) with automatic zero-dependency `.env` file parsing and < 1 MB storage footprint.
 
 ---
 
 ## Features
 - **Mobile-Optimized PWA:** Offline caching via Service Worker (`campusfix-v3`) and Web App Manifest.
+- **Persistent Outage History:** File-backed storage (`outages.json`) and SSE history replay.
+- **Expanded Real Campus Maintenance Records:** 25+ detailed campus facility tickets.
+- **Automatic `.env` Parsing:** Zero-dependency configuration loader.
 - **Hybrid Troubleshooting & Status Tracking:** Seamlessly tracks remote model success (`remote-model-used-successfully`), fallback (`remote-model-failed-fallback-to-rules`), or local rules (`rules-engine-tfidf`).
-- **In-Memory IP Rate Limiting:** Applies in-memory request rate limits as a basic safeguard.
+- **In-Memory IP Rate Limiting:** Applies request rate limits as a basic safeguard.
 - **Copyable Maintenance Reports & Outage Broadcasts:** Instantly generates structured logs and notifies connected clients.
 
 ---
 
 ## Requirements
-- **Node.js:** v25.8.2 (or any modern Node.js v18+ runtime).
+- **Node.js:** v18+ (or any modern Node.js runtime).
 - **Environment:** Termux (Android), Linux, macOS, or Windows.
 
 ---
@@ -63,7 +66,7 @@ export OPEN_WEIGHT_API_KEY="your-api-key-here"
 export OPEN_WEIGHT_MODEL_NAME="openai/gpt-oss-20b"
 node server.js
 ```
-*If not configured or unreachable, CampusFix AI automatically falls back to its local rules engine.*
+*CampusFix AI automatically parses `.env` files at startup. If not configured or unreachable, it seamlessly falls back to its local rules engine.*
 
 ---
 

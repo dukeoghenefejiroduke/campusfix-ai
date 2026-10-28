@@ -9,16 +9,17 @@ University dorms, labs, and campus buildings rely on everyday equipment (water p
 
 **CampusFix AI** provides:
 1. **Local Rules-Based Diagnostic Engine & Remote Model Integration**: Evaluates problems using deterministic safety rules or a configured remote OpenAI-compatible API endpoint (such as Groq using model `openai/gpt-oss-20b`).
-2. **TF-IDF Text-Similarity Precedents (`tfidfEngine.js`)**: Performs vector space cosine similarity matching against a small set of illustrative example records in pure Node.js. These are illustrative examples, not verified campus maintenance records.
-3. **Server-Mediated Outage Notifications**: Broadcasts outage reports to clients connected to the same running server via Server-Sent Events (SSE). This is in-memory broadcasting, not peer-to-peer networking, and reports are not persisted across restarts.
-4. **Authoritative Safety Guardrails**: Deterministic safety post-processing ensures hazardous conditions (sparks, smoke, burning smells) automatically trigger Emergency urgency and mandatory safety instructions, filtering out any unsafe user actions.
-5. **Zero-Dependency Architecture**: Built entirely with Node.js built-in modules (`http`, `fs`, `path`) with < 1 MB storage footprint.
+2. **TF-IDF Text-Similarity Precedents (`tfidfEngine.js`)**: Performs vector space cosine similarity matching against a diverse set of illustrative example records in pure Node.js. These are illustrative examples, not verified campus maintenance records.
+3. **Integrated Acoustic-Semantic Diagnostics**: Correlates browser-side Web Audio API FFT frequency peak observations with semantic maintenance precedents to provide multi-modal supporting context.
+4. **Server-Mediated Outage Notifications**: Broadcasts outage reports to clients connected to the same running server via Server-Sent Events (SSE). This is in-memory broadcasting, not peer-to-peer networking, and reports are not persisted across restarts.
+5. **Authoritative Safety Guardrails & Vague Input Clarification**: Deterministic safety post-processing ensures hazardous conditions (sparks, smoke, burning smells) automatically trigger Emergency urgency and mandatory safety instructions, filtering out any unsafe user actions (such as touching wires or resetting circuit breakers). Vague reports ("Something is wrong") prompt for specific clarification rather than fabricating diagnoses.
+6. **Zero-Dependency Architecture**: Built entirely with Node.js built-in modules (`http`, `fs`, `path`) with < 1 MB storage footprint.
 
 ---
 
 ## Features
 - **Mobile-Optimized PWA:** Offline caching via Service Worker (`campusfix-v3`) and Web App Manifest.
-- **Hybrid Troubleshooting:** Uses remote model API when configured, with seamless fallback to the local rules engine.
+- **Hybrid Troubleshooting & Status Tracking:** Seamlessly tracks remote model success (`remote-model-used-successfully`), fallback (`remote-model-failed-fallback-to-rules`), or local rules (`rules-engine-tfidf`).
 - **In-Memory IP Rate Limiting:** Applies in-memory request rate limits as a basic safeguard.
 - **Copyable Maintenance Reports & Outage Broadcasts:** Instantly generates structured logs and notifies connected clients.
 

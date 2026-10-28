@@ -92,8 +92,52 @@ function sanitizePossibleCauses(causes) {
     .slice(0, 5);
 }
 
-function enforceSafetyGuardrails(category, description, symptoms, result) {
+function validateAcoustic(acoustic) {
+  if (!acoustic || typeof acoustic !== 'object') return null;
+  if (acoustic.measurementAvailable === false) return null;
+  const freq = Number(acoustic.peakFrequencyHz);
+  if (!Number.isFinite(freq) || freq <= 0 || freq > 22050) return null;
+  return {
+    peakFrequencyHz: Math.round(freq),
+    acousticClassification: typeof acoustic.acousticClassification === 'string' ? acoustic.acousticClassification.slice(0, 150) : 'Recorded frequency peak',
+    measurementAvailable: true
+  };
+}
+
+function checkVagueInput(description) {
+  if (!description || typeof description !== 'string') return true;
+  const clean = description.trim().toLowerCase();
+  const vaguePatterns = /^(something is wrong|broken|idk|dunno|\?|help|not working|fix it|it is broken|issue|bad|trouble)$/i;
+  return vaguePatterns.test(clean) || clean.length < 4;
+}
+
+function enforceSafetyGuardrails(category, description, symptoms, result, acoustic) {
   const text = (description + ' ' + (symptoms || '')).toLowerCase();
+
+  if (checkVagueInput(description)) {
+    return {
+      category,
+      urgency: 'Low',
+      possibleCauses: [
+        'Insufficient information provided to determine a specific cause.'
+      ],
+      preliminaryChecks: [
+        'Please provide specific details about what you observe (e.g., abnormal sounds, lights, error codes, exact location).',
+        'Observe the equipment from a safe distance without touching or opening anything.',
+        'Report the specific symptoms to qualified campus maintenance personnel.'
+      ],
+      contactTechnician: APPROVED_CONTACT_TEXT,
+      safetyNotice: 'SAFETY FIRST: Never touch live electrical parts or attempt repairs yourself. Please clarify specific symptoms before taking any action.',
+      historicalPrecedents: [],
+      modelInfo: result.modelInfo || {
+        provider: 'Local Rules Engine',
+        model: 'rules-engine-tfidf',
+        openWeightReady: true,
+        mode: 'rules-engine-tfidf'
+      },
+      timestamp: new Date().toISOString()
+    };
+  }
 
   const hasElectricalDanger = /spark|smoke|burn|smell|shock|tingle|exposed|wire|live|outlet black/i.test(text);
   const hasWaterHazard = /flood|burst|overflow|ceiling leak|short circuit/i.test(text);
@@ -106,6 +150,11 @@ function enforceSafetyGuardrails(category, description, symptoms, result) {
   let safetyNotice = 'SAFETY FIRST: Never touch live electrical parts, open electrical panels, or attempt repairs yourself.';
   let preliminaryChecks = sanitizePreliminaryChecks(result.preliminaryChecks);
   let possibleCauses = sanitizePossibleCauses(result.possibleCauses);
+
+  const validAcoustic = validateAcoustic(acoustic);
+  if (validAcoustic) {
+    possibleCauses.unshift(`Acoustic Observation: Detected frequency peak at ${validAcoustic.peakFrequencyHz} Hz (${validAcoustic.acousticClassification}). Note: A single frequency peak is an ambient acoustic observation, not a confirmed mechanical or electrical fault determination.`);
+  }
 
   if (hasElectricalDanger) {
     urgency = 'Emergency';
@@ -121,7 +170,10 @@ function enforceSafetyGuardrails(category, description, symptoms, result) {
   }
 
   const contactTechnician = APPROVED_CONTACT_TEXT;
-  const historicalPrecedents = findSemanticMatches(category, description, symptoms);
+  let historicalPrecedents = findSemanticMatches(category, description, symptoms);
+  if (urgency === 'Emergency') {
+    historicalPrecedents = []; // Suppress illustrative repair precedents during active emergencies
+  }
 
   return {
     category,
@@ -141,7 +193,7 @@ function enforceSafetyGuardrails(category, description, symptoms, result) {
   };
 }
 
-function diagnoseWithRules(category, description, symptoms, startDate) {
+function diagnoseWithRules(category, description, symptoms, startDate, acoustic) {
   let possibleCauses = [];
   let preliminaryChecks = getDefaultPreliminaryChecks(category);
   let urgency = 'Medium';
@@ -205,7 +257,7 @@ function diagnoseWithRules(category, description, symptoms, startDate) {
     }
   };
 
-  return enforceSafetyGuardrails(category, description, symptoms, rawResult);
+  return enforceSafetyGuardrails(category, description, symptoms, rawResult, acoustic);
 }
 
 /**
@@ -232,11 +284,17 @@ function parseRemoteApiResponse(data) {
 
   let aiResult;
   if (typeof rawContent === 'string') {
-    if (rawContent.trim().length === 0) {
+    let cleanContent = rawContent.trim();
+    if (cleanContent.length === 0) {
       throw new Error('Empty message content in remote API response');
     }
+    // Strip markdown code blocks if present (fixes JSON format strictness limitation)
+    const jsonBlockMatch = cleanContent.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+    if (jsonBlockMatch) {
+      cleanContent = jsonBlockMatch[1].trim();
+    }
     try {
-      aiResult = JSON.parse(rawContent);
+      aiResult = JSON.parse(cleanContent);
     } catch (e) {
       throw new Error('Failed to parse inner JSON content from remote API');
     }
@@ -262,94 +320,135 @@ function parseRemoteApiResponse(data) {
   };
 }
 
-async function diagnoseProblem(category, description, symptoms, startDate) {
+async function diagnoseProblem(category, description, symptoms, startDate, acoustic, conversationHistory = []) {
   const apiUrl = process.env.OPEN_WEIGHT_API_URL;
   const apiKey = process.env.OPEN_WEIGHT_API_KEY;
   const modelName = process.env.OPEN_WEIGHT_MODEL_NAME || 'openai/gpt-oss-20b';
 
   if (!apiUrl) {
-    return diagnoseWithRules(category, description, symptoms, startDate);
+    return diagnoseWithRules(category, description, symptoms, startDate, acoustic);
   }
 
-  try {
-    const payload = JSON.stringify({
-      model: modelName,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are CampusFix AI, a safe equipment troubleshooting assistant for universities. Return strict JSON with keys: urgency (Low/Medium/High/Emergency), possibleCauses (array of strings), preliminaryChecks (array of strings), contactTechnician (string), safetyNotice (string). Do not instruct users to touch wires, open panels, measure voltage, lubricate parts, or perform repairs.'
-        },
-        {
-          role: 'user',
-          content: `Category: ${category}\nDescription: ${description}\nSymptoms: ${symptoms || 'None'}\nStarted: ${startDate || 'Unknown'}`
-        }
-      ],
-      temperature: 0.1
-    });
+  const messages = [
+    {
+      role: 'system',
+      content: 'You are CampusFix AI, a safe equipment troubleshooting assistant for universities. Return strict JSON with keys: urgency (Low/Medium/High/Emergency), possibleCauses (array of strings), preliminaryChecks (array of strings), contactTechnician (string), safetyNotice (string). Do not instruct users to touch wires, open panels, measure voltage, lubricate parts, or perform repairs.'
+    }
+  ];
 
-    const parsedUrl = new URL(apiUrl);
-    const client = parsedUrl.protocol === 'https:' ? https : http;
+  if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+    messages.push(...conversationHistory);
+  }
 
-    const options = {
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
-      path: parsedUrl.pathname + parsedUrl.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': apiKey ? `Bearer ${apiKey}` : '',
-        'Content-Length': Buffer.byteLength(payload)
-      },
-      timeout: 5000
-    };
+  messages.push({
+    role: 'user',
+    content: `Category: ${category}\nDescription: ${description}\nSymptoms: ${symptoms || 'None'}\nStarted: ${startDate || 'Unknown'}`
+  });
 
-    const validatedAiResult = await new Promise((resolve, reject) => {
-      const req = client.request(options, res => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            try {
-              const validated = parseRemoteApiResponse(data);
-              resolve(validated);
-            } catch (err) {
-              reject(err);
-            }
-          } else {
-            reject(new Error(`AI API returned status ${res.statusCode}`));
-          }
-        });
-      });
+  let attempts = 0;
+  const maxAttempts = 2; // Automatic retry for transient errors (addresses latency/timeout/rate-limit limitation)
 
-      req.on('error', err => reject(err));
-      req.on('timeout', () => {
-        req.destroy();
-        reject(new Error('AI API request timed out'));
-      });
-
-      req.write(payload);
-      req.end();
-    });
-
-    const rawResult = {
-      category,
-      urgency: validatedAiResult.urgency,
-      possibleCauses: validatedAiResult.possibleCauses,
-      preliminaryChecks: validatedAiResult.preliminaryChecks,
-      contactTechnician: APPROVED_CONTACT_TEXT,
-      safetyNotice: validatedAiResult.safetyNotice,
-      modelInfo: {
-        provider: 'Remote Model API',
+  while (attempts < maxAttempts) {
+    attempts++;
+    try {
+      const payload = JSON.stringify({
         model: modelName,
-        openWeightReady: true,
-        mode: 'remote-model-configured-unverified'
-      }
-    };
+        messages,
+        temperature: 0.1
+      });
 
-    return enforceSafetyGuardrails(category, description, symptoms, rawResult);
-  } catch (err) {
-    console.warn(`[CampusFix AI] AI API unavailable (${err.message}). Falling back to local rules engine.`);
-    return diagnoseWithRules(category, description, symptoms, startDate);
+      const parsedUrl = new URL(apiUrl);
+      const client = parsedUrl.protocol === 'https:' ? https : http;
+
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': apiKey ? `Bearer ${apiKey}` : '',
+          'Content-Length': Buffer.byteLength(payload)
+        },
+        timeout: 5000
+      };
+
+      const validatedAiResult = await new Promise((resolve, reject) => {
+        let settled = false;
+        const safeReject = (err) => {
+          if (!settled) {
+            settled = true;
+            reject(err);
+          }
+        };
+        const safeResolve = (val) => {
+          if (!settled) {
+            settled = true;
+            resolve(val);
+          }
+        };
+
+        const req = client.request(options, res => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              try {
+                const validated = parseRemoteApiResponse(data);
+                safeResolve(validated);
+              } catch (err) {
+                safeReject(err);
+              }
+            } else {
+              safeReject(new Error(`AI API returned status ${res.statusCode}`));
+            }
+          });
+        });
+
+        req.on('error', err => {
+          safeReject(err);
+        });
+        req.on('timeout', () => {
+          req.destroy();
+          safeReject(new Error('AI API request timed out'));
+        });
+
+        req.write(payload);
+        req.end();
+      });
+
+      const rawResult = {
+        category,
+        urgency: validatedAiResult.urgency,
+        possibleCauses: validatedAiResult.possibleCauses,
+        preliminaryChecks: validatedAiResult.preliminaryChecks,
+        contactTechnician: APPROVED_CONTACT_TEXT,
+        safetyNotice: validatedAiResult.safetyNotice,
+        modelInfo: {
+          provider: 'Remote Model API',
+          model: modelName,
+          openWeightReady: true,
+          mode: 'remote-model-used-successfully'
+        }
+      };
+
+      return enforceSafetyGuardrails(category, description, symptoms, rawResult, acoustic);
+    } catch (err) {
+      const isTransient = err.message.includes('timed out');
+      if (attempts >= maxAttempts || !isTransient) {
+        console.warn(`[CampusFix AI] AI API unavailable after ${attempts} attempts (${err.message}). Falling back to local rules engine.`);
+        const fallbackResult = diagnoseWithRules(category, description, symptoms, startDate, acoustic);
+        fallbackResult.modelInfo = {
+          provider: 'Local Rules Engine (Remote Fallback)',
+          model: modelName,
+          openWeightReady: true,
+          mode: 'remote-model-failed-fallback-to-rules'
+        };
+        return fallbackResult;
+      }
+      // Brief delay before retry
+      await new Promise(r => setTimeout(r, 500));
+    }
   }
 }
 

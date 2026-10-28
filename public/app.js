@@ -155,6 +155,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
           freqDiagnosis.textContent = acousticNote;
           descriptionInput.value += ` [Acoustic Signature: ${peakFrequency}Hz - ${acousticNote}]`;
+          window._lastAcousticSignature = {
+            peakFrequencyHz: peakFrequency,
+            acousticClassification: acousticNote,
+            measurementAvailable: peakFrequency > 0
+          };
         }
       }
 
@@ -227,7 +232,13 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ category, description, symptoms, startDate })
+        body: JSON.stringify({
+          category,
+          description,
+          symptoms,
+          startDate,
+          acoustic: window._lastAcousticSignature || null
+        })
       });
 
       const data = await response.json();
@@ -303,7 +314,9 @@ document.addEventListener('DOMContentLoaded', () => {
       `[RECOMMENDED PRELIMINARY CHECKS]`,
       ...(data.preliminaryChecks || []).map(c => `- ${c}`),
       ``,
-      data.historicalPrecedents && data.historicalPrecedents.length > 0 ? `[ILLUSTRATIVE TEXT-SIMILARITY PRECEDENTS]\n` + data.historicalPrecedents.map(p => `- [${p.id}] (${Math.round(p.similarityScore*100)}% match): ${p.resolution}`).join('\n') : '',
+      data.historicalPrecedents && data.historicalPrecedents.length > 0
+        ? `[ILLUSTRATIVE TEXT-SIMILARITY PRECEDENTS]\n` + data.historicalPrecedents.map(p => `- [${p.id}] (${Math.round(p.similarityScore*100)}% illustrative text match, category: ${p.category}): ${p.resolution}\n  Note: Text similarity is illustrative vector comparison, not proof of a fault or equipment identity.`).join('\n')
+        : `[ILLUSTRATIVE TEXT-SIMILARITY PRECEDENTS]\n- No direct category-compatible illustrative precedents found with sufficient similarity. Similarity matches from other equipment types are omitted to prevent misdiagnosis.`,
       ``,
       `[TECHNICIAN ADVICE]`,
       data.contactTechnician,

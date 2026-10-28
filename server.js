@@ -7,6 +7,36 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+
+// Zero-dependency .env file loader
+function loadEnvFile() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      content.split(/\r?\n/).forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx > 0) {
+            const key = trimmed.slice(0, eqIdx).trim();
+            let val = trimmed.slice(eqIdx + 1).trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1);
+            }
+            if (!process.env[key]) {
+              process.env[key] = val;
+            }
+          }
+        }
+      });
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+loadEnvFile();
+
 const { checkRateLimit } = require('./rateLimiter');
 const { diagnoseProblem } = require('./aiService');
 
@@ -28,6 +58,32 @@ const MIME_TYPES = {
 
 // Server-Mediated Outage Stream clients store
 const sseClients = new Set();
+const OUTAGES_FILE = path.join(__dirname, 'outages.json');
+
+function loadOutages() {
+  try {
+    if (fs.existsSync(OUTAGES_FILE)) {
+      const data = fs.readFileSync(OUTAGES_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    // ignore read error
+  }
+  return [];
+}
+
+function saveOutage(alertData) {
+  try {
+    const outages = loadOutages();
+    outages.unshift(alertData); // newest first
+    const trimmed = outages.slice(0, 100); // keep max 100
+    fs.writeFileSync(OUTAGES_FILE, JSON.stringify(trimmed, null, 2), 'utf8');
+    return trimmed;
+  } catch (e) {
+    return [];
+  }
+}
 
 function broadcastOutageAlert(alertData) {
   const dataString = `data: ${JSON.stringify(alertData)}\n\n`;
@@ -65,6 +121,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // API Outages History Endpoint
+  if (pathname === '/api/outages/history' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(loadOutages()));
+    return;
+  }
+
   // Server-Mediated Outage Stream Endpoint
   if (pathname === '/api/outages/stream' && req.method === 'GET') {
     res.writeHead(200, {
@@ -72,6 +135,13 @@ const server = http.createServer(async (req, res) => {
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive'
     });
+
+    // Send recent historical outages first (chronological order)
+    const recent = loadOutages().slice(0, 10).reverse();
+    recent.forEach(alert => {
+      res.write(`data: ${JSON.stringify({ type: 'OUTAGE_ALERT', ...alert })}\n\n`);
+    });
+
     res.write(`data: ${JSON.stringify({ type: 'CONNECTED', message: 'Connected to CampusFix Outage Stream'})}\n\n`);
 
     sseClients.add(res);
@@ -156,13 +226,16 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        broadcastOutageAlert({
+        const alertData = {
           type: 'OUTAGE_ALERT',
           category,
           description,
           urgency,
           timestamp: new Date().toISOString()
-        });
+        };
+
+        saveOutage(alertData);
+        broadcastOutageAlert(alertData);
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ success: true }));
@@ -212,7 +285,7 @@ const server = http.createServer(async (req, res) => {
 
       try {
         const data = JSON.parse(body);
-        const { category, description, symptoms, startDate } = data;
+        const { category, description, symptoms, startDate, acoustic } = data;
 
         if (!category || typeof category !== 'string' || !description || typeof description !== 'string') {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -230,7 +303,8 @@ const server = http.createServer(async (req, res) => {
           category.trim(),
           description.trim(),
           symptoms ? String(symptoms).trim() : '',
-          startDate ? String(startDate).trim() : ''
+          startDate ? String(startDate).trim() : '',
+          acoustic
         );
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });

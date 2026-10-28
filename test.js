@@ -7,6 +7,7 @@ const assert = require('assert');
 const http = require('http');
 const { execSync } = require('child_process');
 const { diagnoseProblem } = require('./aiService');
+const { findSemanticMatches } = require('./tfidfEngine');
 const server = require('./server');
 
 async function runTests() {
@@ -49,16 +50,16 @@ async function runTests() {
   // 3. Mock AI Model Server Tests (Response Parsing Edge Cases & Fallback Verification)
   console.log('Running Mock AI Model Server parsing & error handling tests...');
 
-  async function runMockAiTest(responderFn) {
+  async function runMockAiTest(responderFn, testDescription = 'Circuit breaker tripped') {
     const mockServer = http.createServer((req, res) => {
       responderFn(req, res);
     });
     await new Promise(resolve => mockServer.listen(0, resolve));
     const port = mockServer.address().port;
-    process.env.OPEN_WEIGHT_API_URL = `http://localhost:${port}/v1/chat/completions`;
+    process.env.OPEN_WEIGHT_API_URL = `http://127.0.0.1:${port}/v1/chat/completions`;
     process.env.OPEN_WEIGHT_API_KEY = 'mock-key';
 
-    const res = await diagnoseProblem('electrical', 'Circuit breaker tripped');
+    const res = await diagnoseProblem('electrical', testDescription);
     mockServer.close();
     delete process.env.OPEN_WEIGHT_API_URL;
     delete process.env.OPEN_WEIGHT_API_KEY;
@@ -85,14 +86,88 @@ async function runTests() {
   assert.ok(validRes.possibleCauses.length > 0);
   console.log('✅ Valid OpenAI-compatible response test passed.');
 
+  // Test 1.1: Vague input clarification test
+  const vagueRes = await diagnoseProblem('electrical', 'Something is wrong');
+  assert.strictEqual(vagueRes.urgency, 'Low', 'Vague input must return Low urgency');
+  assert.ok(vagueRes.preliminaryChecks.some(c => c.toLowerCase().includes('specific details')), 'Vague input must request specific details');
+  console.log('✅ Vague input clarification test passed.');
+
+  // Test 1.2: Unsafe model instruction attempting breaker reset sanitization test
+  const unsafeBreakerRes = await runMockAiTest((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            urgency: 'Medium',
+            possibleCauses: ['Tripped breaker'],
+            preliminaryChecks: ['Reset the circuit breaker panel.', 'Open the electrical box.'],
+            safetyNotice: 'Be careful.'
+          })
+        }
+      }]
+    }));
+  }, 'Hallway power failure');
+  unsafeBreakerRes.preliminaryChecks.forEach(check => {
+    const hasActiveVerb = /\b(reset|open|touch|restart|measure|test|repair|remove|disassemble|isolate|restore|turn|bleed|drain|verify|examine|monitor)\b/i.test(check);
+    const hasSafeContext = /\b(without|not|do not|don't|never|avoid|keep away)\b/i.test(check);
+    assert.strictEqual(hasActiveVerb && !hasSafeContext, false, `Unsafe breaker/panel instruction must be sanitized: "${check}"`);
+  });
+  console.log('✅ Unsafe breaker reset instructions sanitization test passed.');
+
   // Test 2: Missing choices -> Fallback to rules engine
   const missingChoicesRes = await runMockAiTest((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'no choices' }));
   });
   assert.ok(missingChoicesRes.possibleCauses.length > 0);
-  assert.strictEqual(missingChoicesRes.modelInfo.mode, 'rules-engine-tfidf');
+  assert.strictEqual(missingChoicesRes.modelInfo.mode, 'remote-model-failed-fallback-to-rules');
   console.log('✅ Missing choices fallback test passed.');
+
+  // Test 1.3: Acoustic metadata integration test (60Hz)
+  const acousticRes = await diagnoseProblem('water-pump', 'Pump humming loudly', '', '', {
+    peakFrequencyHz: 60,
+    acousticClassification: 'Electrical Hum Frequency (50Hz/60Hz)',
+    measurementAvailable: true
+  });
+  assert.ok(acousticRes.possibleCauses.some(c => c.includes('60 Hz')), 'Diagnosis must include acoustic observation');
+  console.log('✅ Acoustic metadata integration test passed.');
+
+  // Test 1.4: Acoustic measurement regression tests (Valid 3094 Hz vs 0 Hz / missing)
+  const validAcousticRes = await diagnoseProblem('cooling', 'Air handler whistling', '', '', {
+    peakFrequencyHz: 3094,
+    acousticClassification: 'High-Frequency Peak. Possible air or fluid flow whistle.',
+    measurementAvailable: true
+  });
+  assert.ok(validAcousticRes.possibleCauses.some(c => c.includes('3094 Hz')), 'Valid 3094 Hz frequency must be preserved in pipeline');
+  console.log('✅ Valid nonzero acoustic frequency (3094 Hz) regression test passed.');
+
+  const zeroAcousticRes = await diagnoseProblem('cooling', 'Air handler whistling', '', '', {
+    peakFrequencyHz: 0,
+    acousticClassification: 'Normal',
+    measurementAvailable: true
+  });
+  assert.strictEqual(zeroAcousticRes.possibleCauses.some(c => c.includes('0 Hz')), false, '0 Hz must never be reported as a valid acoustic peak');
+  console.log('✅ Zero frequency rejection regression test passed.');
+
+  const missingAcousticRes = await diagnoseProblem('cooling', 'Air handler whistling', '', '', {
+    peakFrequencyHz: 0,
+    acousticClassification: 'Normal',
+    measurementAvailable: false
+  });
+  assert.strictEqual(missingAcousticRes.possibleCauses.some(c => c.includes('Hz')), false, 'Missing measurement must not report frequency');
+  console.log('✅ Missing acoustic measurement regression test passed.');
+
+  // Test 1.5: TF-IDF Similarity Engine category relevance regression tests
+  // Plumbing query should prefer plumbing precedent (TICK-104) and not return mismatched cross-category precedents if category mismatch exists
+  const plumbingMatches = findSemanticMatches('plumbing', 'sink drain clogged slow drainage', '');
+  assert.ok(plumbingMatches.length > 0, 'Plumbing query must find category-compatible match');
+  assert.strictEqual(plumbingMatches[0].category, 'plumbing', 'Top match must be category-compatible');
+  console.log('✅ TF-IDF similarity category compatibility test passed.');
+
+  const mismatchedMatches = findSemanticMatches('plumbing', 'transformer core vibration electrical room', '');
+  assert.strictEqual(mismatchedMatches.length, 0, 'Mismatched category with no compatible precedents must return empty array to prevent misleading matches');
+  console.log('✅ TF-IDF similarity mismatched category filtering test passed.');
 
   // Test 3: Missing message content -> Fallback to rules engine
   const missingContentRes = await runMockAiTest((req, res) => {
@@ -100,7 +175,7 @@ async function runTests() {
     res.end(JSON.stringify({ choices: [{ message: {} }] }));
   });
   assert.ok(missingContentRes.possibleCauses.length > 0);
-  assert.strictEqual(missingContentRes.modelInfo.mode, 'rules-engine-tfidf');
+  assert.strictEqual(missingContentRes.modelInfo.mode, 'remote-model-failed-fallback-to-rules');
   console.log('✅ Missing message content fallback test passed.');
 
   // Test 4: Empty content -> Fallback to rules engine
@@ -108,7 +183,7 @@ async function runTests() {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ choices: [{ message: { content: '   ' } }] }));
   });
-  assert.strictEqual(emptyContentRes.modelInfo.mode, 'rules-engine-tfidf');
+  assert.strictEqual(emptyContentRes.modelInfo.mode, 'remote-model-failed-fallback-to-rules');
   console.log('✅ Empty content fallback test passed.');
 
   // Test 5: Invalid JSON content -> Fallback to rules engine
@@ -116,7 +191,7 @@ async function runTests() {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ choices: [{ message: { content: 'not-json' } }] }));
   });
-  assert.strictEqual(invalidJsonContentRes.modelInfo.mode, 'rules-engine-tfidf');
+  assert.strictEqual(invalidJsonContentRes.modelInfo.mode, 'remote-model-failed-fallback-to-rules');
   console.log('✅ Invalid JSON content fallback test passed.');
 
   // Test 6: JSON object missing urgency (should normalize to Medium)
@@ -184,7 +259,7 @@ async function runTests() {
     res.writeHead(401, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Unauthorized' }));
   });
-  assert.strictEqual(httpErrorRes.modelInfo.mode, 'rules-engine-tfidf');
+  assert.strictEqual(httpErrorRes.modelInfo.mode, 'remote-model-failed-fallback-to-rules');
   console.log('✅ HTTP 401 error fallback test passed.');
 
   // Test 10: HTTP Error (429) -> Fallback to rules engine
@@ -192,7 +267,7 @@ async function runTests() {
     res.writeHead(429, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Rate limit' }));
   });
-  assert.strictEqual(rateLimitErrorRes.modelInfo.mode, 'rules-engine-tfidf');
+  assert.strictEqual(rateLimitErrorRes.modelInfo.mode, 'remote-model-failed-fallback-to-rules');
   console.log('✅ HTTP 429 error fallback test passed.');
 
   // 4. HTTP Server & Endpoint Tests
@@ -246,6 +321,65 @@ async function runTests() {
   const notFoundData = await httpRequest('GET', `http://localhost:${testPort}/api/nonexistent`);
   assert.strictEqual(notFoundData.status, 404);
   console.log('✅ Unknown route 404 test passed.');
+
+  // Test SSE Multi-Client Broadcasting
+  await new Promise((resolve, reject) => {
+    let receivedCount = 0;
+    const client1 = http.request({ hostname: '127.0.0.1', port: testPort, path: '/api/outages/stream', method: 'GET' }, res1 => {
+      res1.on('data', chunk => {
+        const text = chunk.toString();
+        if (text.includes('OUTAGE_ALERT')) {
+          receivedCount++;
+          if (receivedCount === 2) {
+            client1.destroy();
+            client2.destroy();
+            resolve();
+          }
+        }
+      });
+    });
+    client1.on('error', () => {});
+    client1.end();
+
+    const client2 = http.request({ hostname: '127.0.0.1', port: testPort, path: '/api/outages/stream', method: 'GET' }, res2 => {
+      res2.on('data', chunk => {
+        const text = chunk.toString();
+        if (text.includes('OUTAGE_ALERT')) {
+          receivedCount++;
+          if (receivedCount === 2) {
+            client1.destroy();
+            client2.destroy();
+            resolve();
+          }
+        }
+      });
+    });
+    client2.on('error', () => {});
+    client2.end();
+
+    setTimeout(() => {
+      httpRequest('POST', `http://127.0.0.1:${testPort}/api/outages/report`, {
+        category: 'electrical',
+        description: 'Multi-client SSE test alert',
+        urgency: 'High'
+      }).catch(reject);
+    }, 100);
+  });
+  console.log('✅ SSE multi-client broadcasting test passed.');
+
+  // Test Persistent Outage History Endpoint
+  const historyRes = await httpRequest('GET', `http://localhost:${testPort}/api/outages/history`);
+  assert.strictEqual(historyRes.status, 200);
+  const historyJson = JSON.parse(historyRes.body);
+  assert.ok(Array.isArray(historyJson), 'Outage history must be an array');
+  assert.ok(historyJson.length > 0, 'Outage history must contain recorded alerts');
+  console.log('✅ Persistent outage history endpoint test passed.');
+
+  // Test Expanded TF-IDF Real Campus Maintenance Records
+  const labMatches = findSemanticMatches('other', 'lab fume hood airflow alarm buzzing low velocity', '');
+  assert.ok(labMatches.length > 0, 'Expanded records must match lab fume hood query');
+  assert.strictEqual(labMatches[0].id, 'TICK-108', 'Top match must be TICK-108 (lab fume hood)');
+  console.log('✅ Expanded real campus maintenance records TF-IDF test passed.');
 
   // Close test server
   server.close();

@@ -2,6 +2,8 @@
 
 > A lightweight, mobile-friendly prototype that offers preliminary troubleshooting guidance, safety warnings, maintenance reports, persistent server-mediated outage notifications, and TF-IDF semantic maintenance matching.
 
+Live app: https://campusfix-ai-to.onrender.com/
+
 ---
 
 ## Overview & How It Works

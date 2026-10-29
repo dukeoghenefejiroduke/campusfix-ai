@@ -1,0 +1,30 @@
+{
+  "name": "campusfix-ai",
+  "version": "1.2.0",
+  "description": "CampusFix AI — an open-weight AI assistant for safe troubleshooting of everyday campus equipment problems.",
+  "private": true,
+  "license": "MIT",
+  "author": "dukeoghenefejiroduke",
+  "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dukeoghenefejiroduke/campusfix-ai.git"
+  },
+  "homepage": "https://github.com/dukeoghenefejiroduke/campusfix-ai",
+  "keywords": [
+    "campusfix",
+    "ai",
+    "troubleshooting",
+    "maintenance",
+    "nodejs",
+    "pwa"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test.js"
+  }
+}

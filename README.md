@@ -60,6 +60,25 @@ node test.js
 
 ---
 
+## Screenshots
+
+### CampusFix AI Dashboard
+![CampusFix AI Dashboard](Screenshot_20261029-162105.png)
+
+### Troubleshooting Workflow
+![Equipment Troubleshooting](Screenshot_20261029-170040.png)
+
+### Diagnostic Report
+![Diagnostic Report](Screenshot_20261029-170046.png)
+
+### Outage Feed
+![Outage Feed](Screenshot_20261029-170052.png)
+
+### Mobile View
+![Mobile View](Screenshot_20261029-170918.png)
+
+---
+
 ## Connecting a Compatible Model API (Optional)
 To connect a remote OpenAI-compatible model API (such as Groq), set the following environment variables (or copy from `.env.example` to `.env`):
 ```bash

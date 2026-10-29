@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const item = document.createElement('div');
     item.className = 'mesh-alert-item';
-    item.innerHTML = `<span><strong>[${alert.category.toUpperCase()}]</strong> ${alert.description}</span> <span style="font-size:0.75rem; color:#64748b;">${new Date(alert.timestamp).toLocaleTimeString()}</span>`;
+    item.innerHTML = `<span><strong>[${alert.category.toUpperCase()}]</strong> ${alert.description}</span> <span style="font-size:0.75rem; color:#64748b;">${new Date(alert.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span>`;
     meshTicker.prepend(item);
 
     while (meshTicker.children.length > 5) {
@@ -315,8 +315,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ...(data.preliminaryChecks || []).map(c => `- ${c}`),
       ``,
       data.historicalPrecedents && data.historicalPrecedents.length > 0
-        ? `[ILLUSTRATIVE TEXT-SIMILARITY PRECEDENTS]\n` + data.historicalPrecedents.map(p => `- [${p.id}] (${Math.round(p.similarityScore*100)}% illustrative text match, category: ${p.category}): ${p.resolution}\n  Note: Text similarity is illustrative vector comparison, not proof of a fault or equipment identity.`).join('\n')
-        : `[ILLUSTRATIVE TEXT-SIMILARITY PRECEDENTS]\n- No direct category-compatible illustrative precedents found with sufficient similarity. Similarity matches from other equipment types are omitted to prevent misdiagnosis.`,
+        ? `[ILLUSTRATIVE TEXT-SIMILARITY PRECEDENTS]\n` + data.historicalPrecedents.map(p => `- [${p.id}] (${Math.round(p.similarityScore*100)}% illustrative text match, category: ${p.category}): ${p.resolution}`).join('\n')
+        : `[ILLUSTRATIVE TEXT-SIMILARITY PRECEDENTS]\n- No direct category-compatible illustrative precedents found with sufficient similarity. Similarity matches from other equipment types are omitted for safety and relevance.`,
       ``,
       `[TECHNICIAN ADVICE]`,
       data.contactTechnician,

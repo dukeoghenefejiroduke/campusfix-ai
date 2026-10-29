@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CampusFix AI favicon">
+  <rect width="64" height="64" rx="18" fill="#0b1220"/>
+  <path d="M32 10 46 18v20c0 13.8-9 23.5-14 27-5-3.5-14-13.2-14-27V18L32 10Z" fill="#1b2a40"/>
+  <path d="M22 31.5 28.7 38l14-18" fill="none" stroke="#f4b94f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 17v8" stroke="#f7d38a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M28 20.5h8" stroke="#f7d38a" stroke-width="4" stroke-linecap="round"/>
+</svg>

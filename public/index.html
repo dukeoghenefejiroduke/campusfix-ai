@@ -3,181 +3,232 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CampusFix AI — Equipment Diagnostics & Outage Stream</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b1220">
+  <title>CampusFix AI</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="app-shell">
-    <!-- Top Navigation Bar -->
-    <header class="navbar">
-      <div class="nav-brand">
-        <span class="brand-icon">⚡</span>
-        <span class="brand-title">CampusFix <span class="highlight">AI</span></span>
+  <div id="welcomeOverlay" class="welcome-overlay" aria-live="polite">
+    <div class="welcome-card">
+      <div class="welcome-brand" id="welcomeBrand"></div>
+      <h1>CampusFix AI</h1>
+      <p class="welcome-tagline">Safe, simple support for campus equipment issues.</p>
+
+      <form id="signinForm" class="signin-form" novalidate>
+        <div class="field">
+          <label for="emailInput">Email</label>
+          <input id="emailInput" type="email" placeholder="name@campus.edu" disabled>
+        </div>
+        <div class="field">
+          <label for="passwordInput">Password</label>
+          <input id="passwordInput" type="password" placeholder="••••••••" disabled>
+        </div>
+        <div class="signin-status">
+          <span class="soon-badge">Coming soon</span>
+          <p>Accounts are on the way. For now, use the app as a guest.</p>
+        </div>
+        <button type="button" class="button button-primary button-block" id="continueGuestBtn">Continue as guest</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="appShell" class="app-shell hidden" aria-live="polite">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-mark" id="brandMark"></div>
+        <div class="brand-copy">
+          <span class="brand-name">CampusFix AI</span>
+          <span class="brand-subtitle">Campus equipment support</span>
+        </div>
       </div>
-      <div class="nav-badges">
-        <span class="badge hackathon-badge">OPEN//BUILD 2026</span>
-        <span class="badge mesh-badge" id="meshStatusBadge"><span class="pulse-dot"></span> Server Status</span>
+
+      <div class="topbar-actions">
+        <span id="guestBadge" class="chip hidden"></span>
+        <span id="connectionStatus" class="status-pill offline">Offline</span>
+        <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle color theme">Light</button>
       </div>
     </header>
 
-    <main class="main-container">
-      <!-- Hero Banner -->
-      <section class="hero-section">
-        <h1>Campus Equipment Troubleshooting Assistant</h1>
-        <p>Safe troubleshooting guidance, remote model integration, illustrative text-similarity matching, and server-mediated outage notifications.</p>
-      </section>
+    <div class="mobile-nav" aria-label="Primary navigation">
+      <button class="nav-tab active" type="button" data-tab="diagnose">
+        <span class="nav-icon" data-role="nav-diagnose"></span>
+        <span>Diagnose</span>
+      </button>
+      <button class="nav-tab" type="button" data-tab="outages">
+        <span class="nav-icon" data-role="nav-outages"></span>
+        <span>Outages</span>
+      </button>
+      <button class="nav-tab" type="button" data-tab="history">
+        <span class="nav-icon" data-role="nav-history"></span>
+        <span>History</span>
+      </button>
+    </div>
 
-      <!-- Safety Banner -->
-      <div class="safety-banner" id="safetyBanner">
-        <div class="safety-icon">⚠️</div>
-        <div class="safety-text">
-          <strong>CRITICAL SAFETY MANDATE:</strong> Never touch live electrical components, open panels, or attempt repairs. Sparking, smoke, or burning smells require immediate area evacuation and facilities contact.
+    <main class="main-layout">
+      <nav class="side-nav desktop-nav" aria-label="Sections">
+        <button class="nav-tab active" type="button" data-tab="diagnose">
+          <span class="nav-icon" data-role="nav-diagnose"></span>
+          <span>Diagnose</span>
+        </button>
+        <button class="nav-tab" type="button" data-tab="outages">
+          <span class="nav-icon" data-role="nav-outages"></span>
+          <span>Outages</span>
+        </button>
+        <button class="nav-tab" type="button" data-tab="history">
+          <span class="nav-icon" data-role="nav-history"></span>
+          <span>History</span>
+        </button>
+      </nav>
+
+      <div class="panel-shell">
+        <div id="safetyBanner" class="safety-banner">
+          <div class="safety-icon-wrap" data-role="safety-icon"></div>
+          <div class="safety-content">
+            <strong>Safety notice:</strong>
+            Never touch live components, open panels, or attempt repairs without approved campus facilities support.
+          </div>
+          <button type="button" class="dismiss-banner" id="dismissBannerBtn" aria-label="Dismiss safety notice">Dismiss</button>
         </div>
+
+        <section id="diagnosePanel" class="tab-panel active" aria-label="Diagnosis panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Troubleshooting</p>
+              <h1>Diagnose an issue</h1>
+            </div>
+          </div>
+
+          <form id="diagnoseForm" class="diagnose-form" novalidate>
+            <div class="field">
+              <label>Select equipment category</label>
+              <div id="categoryGrid" class="category-grid" role="radiogroup" aria-label="Equipment category"></div>
+              <input type="hidden" id="category" name="category">
+            </div>
+
+            <div class="field">
+              <label for="description">Problem description</label>
+              <textarea id="description" name="description" rows="4" placeholder="Describe the issue, sounds, lights, or visible symptoms."></textarea>
+            </div>
+
+            <div class="field">
+              <label for="symptoms">Observed symptoms</label>
+              <input id="symptoms" name="symptoms" type="text" placeholder="For example: humming, flashing, leaking, warm air">
+            </div>
+
+            <div class="field">
+              <label for="startDate">When did it start?</label>
+              <input id="startDate" name="startDate" type="text" placeholder="For example: this morning or 3:15 PM">
+            </div>
+
+            <div class="acoustic-box">
+              <div class="acoustic-header">
+                <div>
+                  <p class="eyebrow">Optional signal capture</p>
+                  <strong>Acoustic reading</strong>
+                </div>
+                <button type="button" class="button button-secondary" id="recordAudioBtn">Record audio</button>
+              </div>
+              <p id="audioStatus" class="audio-status">Use your microphone to capture a quick sound check.</p>
+              <div id="audioPanel" class="audio-panel hidden">
+                <canvas id="audioCanvas" width="300" height="60"></canvas>
+                <div class="acoustic-readout">
+                  <span id="dominantFreq">0 Hz</span>
+                  <small id="freqDiagnosis">Waiting for reading</small>
+                </div>
+              </div>
+            </div>
+
+            <button id="submitBtn" type="submit" class="button button-primary button-block">
+              <span class="button-label">Run diagnosis</span>
+              <span class="spinner hidden" id="submitSpinner"></span>
+            </button>
+          </form>
+
+          <div id="formNotice" class="inline-notice hidden" aria-live="polite"></div>
+
+          <section id="resultCard" class="result-card hidden" aria-live="polite">
+            <div class="result-header">
+              <div>
+                <p class="eyebrow">Diagnosis result</p>
+                <h2>Recommended action</h2>
+              </div>
+              <span id="urgencyBadge" class="urgency-badge medium">Medium</span>
+            </div>
+
+            <div class="result-grid">
+              <div class="info-block primary-block">
+                <h3>Safety steps</h3>
+                <ul id="safetyList" class="check-list"></ul>
+              </div>
+              <div class="info-block">
+                <h3>Likely causes</h3>
+                <ul id="causesList" class="list"></ul>
+              </div>
+              <div class="info-block">
+                <h3>What to do now</h3>
+                <ul id="actionList" class="list"></ul>
+              </div>
+              <div class="info-block">
+                <h3>Similar past tickets</h3>
+                <div id="similarList" class="similar-list"></div>
+              </div>
+              <div id="acousticBlock" class="info-block hidden">
+                <h3>Acoustic reading</h3>
+                <p id="acousticText"></p>
+              </div>
+              <div class="info-block narrow">
+                <h3>Source</h3>
+                <p id="sourceText">Rules engine</p>
+              </div>
+            </div>
+
+            <div class="report-card">
+              <div class="report-header">
+                <h3>Maintenance report</h3>
+                <div class="report-actions">
+                  <button type="button" class="button button-secondary" id="downloadReportBtn">Download report</button>
+                  <button type="button" class="button button-secondary" id="copyReportBtn">Copy report</button>
+                </div>
+              </div>
+              <textarea id="reportOutput" rows="8" readonly></textarea>
+            </div>
+          </section>
+        </section>
+
+        <section id="outagesPanel" class="tab-panel" aria-label="Outage panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Live feed</p>
+              <h1>Outage feed</h1>
+            </div>
+            <span id="outageClientCount" class="chip">0 active</span>
+          </div>
+          <div id="outageFeed" class="outage-feed" aria-live="polite"></div>
+        </section>
+
+        <section id="historyPanel" class="tab-panel" aria-label="History panel">
+          <div class="panel-header split-header">
+            <div>
+              <p class="eyebrow">Records</p>
+              <h1>Recent diagnoses</h1>
+            </div>
+            <div class="history-actions">
+              <button type="button" class="button button-secondary" id="downloadHistoryJsonBtn">Download JSON</button>
+              <button type="button" class="button button-secondary" id="downloadHistoryTxtBtn">Download text</button>
+              <button type="button" class="button button-danger" id="clearHistoryBtn">Clear all</button>
+            </div>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </section>
       </div>
-
-      <!-- Live Campus Outage Stream Ticker -->
-      <section class="card mesh-card">
-        <div class="card-header-flex">
-          <h2>📡 Server-Mediated Outage Notifications</h2>
-          <span class="mesh-count" id="meshCount">0 Active Clients</span>
-        </div>
-        <div id="meshTicker" class="mesh-ticker">
-          <p class="mesh-placeholder">Listening for real-time outage reports served by this server...</p>
-        </div>
-      </section>
-
-      <!-- Interactive Troubleshooting Form -->
-      <section class="card form-card">
-        <h2>🛠️ Equipment Diagnostic Hub</h2>
-        <form id="diagnoseForm">
-          <!-- Visual Category Selector Grid -->
-          <div class="form-group">
-            <label>Select Equipment Category <span class="required">*</span></label>
-            <div class="category-grid" id="categoryGrid">
-              <div class="category-tile" data-value="electrical">
-                <span class="tile-icon">⚡</span>
-                <span class="tile-title">Electrical</span>
-              </div>
-              <div class="category-tile" data-value="water-pump">
-                <span class="tile-icon">💧</span>
-                <span class="tile-title">Water Pump</span>
-              </div>
-              <div class="category-tile" data-value="plumbing">
-                <span class="tile-icon">🚰</span>
-                <span class="tile-title">Plumbing</span>
-              </div>
-              <div class="category-tile" data-value="cooling">
-                <span class="tile-icon">❄️</span>
-                <span class="tile-title">HVAC Cooling</span>
-              </div>
-              <div class="category-tile" data-value="other">
-                <span class="tile-icon">🔧</span>
-                <span class="tile-title">Other Gear</span>
-              </div>
-            </div>
-            <input type="hidden" id="category" name="category" required>
-          </div>
-
-          <div class="form-group">
-            <label for="description">Problem Description <span class="required">*</span></label>
-            <textarea id="description" name="description" rows="4" placeholder="Describe what is happening (e.g., pump making humming noise, outlet sparking, AC blowing warm air)..." required></textarea>
-          </div>
-
-          <!-- Acoustic Audio Spectrogram Analyzer -->
-          <div class="form-group acoustic-group">
-            <div class="acoustic-header">
-              <label>🎙️ Acoustic FFT Frequency Spectrogram (Optional)</label>
-              <button type="button" id="recordAudioBtn" class="btn secondary-btn">Record 3s Audio</button>
-            </div>
-            <span id="audioStatus" class="audio-status">Hold phone near equipment to record audio fingerprint</span>
-            <div id="freqVisualizerContainer" class="freq-visualizer-container" hidden>
-              <canvas id="audioCanvas" width="300" height="60"></canvas>
-              <p class="freq-result">Dominant Frequency: <strong id="dominantFreq">0 Hz</strong> — <span id="freqDiagnosis">Analyzing...</span></p>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group half">
-              <label for="symptoms">Observed Symptoms (Optional)</label>
-              <input type="text" id="symptoms" name="symptoms" placeholder="e.g., humming, flashing, pooling">
-            </div>
-            <div class="form-group half">
-              <label for="startDate">When Did It Start? (Optional)</label>
-              <input type="text" id="startDate" name="startDate" placeholder="e.g., Today at 2 PM">
-            </div>
-          </div>
-
-          <button type="submit" id="submitBtn" class="btn primary-btn">
-            <span class="btn-text">Run Diagnosis & Similarity Match</span>
-            <span class="spinner" id="btnSpinner" hidden></span>
-          </button>
-        </form>
-      </section>
-
-      <!-- Error State -->
-      <div id="errorContainer" class="error-container" hidden>
-        <p id="errorMessage"></p>
-      </div>
-
-      <!-- Results Section -->
-      <section id="resultsSection" class="card results-card" hidden>
-        <div class="results-header">
-          <h2>Diagnosis & Action Guide</h2>
-          <span id="urgencyBadge" class="urgency-badge">Medium</span>
-        </div>
-
-        <div class="result-block">
-          <h3>🔍 Possible Root Causes</h3>
-          <ul id="causesList"></ul>
-        </div>
-
-        <div class="result-block">
-          <h3>🛡️ Safe Preliminary Checks</h3>
-          <ul id="checksList"></ul>
-        </div>
-
-        <!-- TF-IDF Text Similarity Precedents -->
-        <div class="result-block memory-block" id="memoryBlock" hidden>
-          <h3>🧠 Illustrative Text-Similarity Precedents</h3>
-          <div id="memoryList"></div>
-        </div>
-
-        <div class="result-block highlight-block">
-          <h3>📞 When to Contact a Technician</h3>
-          <p id="contactText"></p>
-        </div>
-
-        <div class="result-block warning-block">
-          <h3>⚠️ Authoritative Safety Guardrail</h3>
-          <p id="resultSafetyText"></p>
-        </div>
-
-        <!-- Maintenance Report Output -->
-        <div class="report-section">
-          <div class="report-header">
-            <h3>📋 Maintenance Report (Ready to Copy)</h3>
-            <div class="report-actions">
-              <button type="button" id="broadcastBtn" class="btn secondary-btn broadcast-btn">Broadcast Notice</button>
-              <button type="button" id="copyBtn" class="btn secondary-btn">Copy Report</button>
-            </div>
-          </div>
-          <textarea id="reportTextarea" readonly rows="6"></textarea>
-          <span id="copyFeedback" class="copy-feedback" hidden>Copied to clipboard!</span>
-          <span id="broadcastFeedback" class="copy-feedback" hidden>Broadcasted to outage stream!</span>
-        </div>
-
-        <div class="model-meta">
-          <small id="modelMetaText"></small>
-        </div>
-      </section>
     </main>
-
-    <footer class="footer">
-      <p>CampusFix AI — OPEN//BUILD 2026 Project. Built with Node.js built-in modules.</p>
-    </footer>
   </div>
 
-  <script src="app.js"></script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="/icons.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

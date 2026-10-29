@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CampusFix AI icon 512">
+  <rect width="512" height="512" rx="96" fill="#0b1220"/>
+  <path d="M256 80 366 138v138c0 108-62 181-110 220-48-39-110-112-110-220V138L256 80Z" fill="#1b2a40"/>
+  <path d="M185 260l55 55 117-144" fill="none" stroke="#f4b94f" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256 136v63" stroke="#f7d38a" stroke-width="20" stroke-linecap="round"/>
+  <path d="M223 171h66" stroke="#f7d38a" stroke-width="20" stroke-linecap="round"/>
+</svg>

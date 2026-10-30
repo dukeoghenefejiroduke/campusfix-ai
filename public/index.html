@@ -40,9 +40,9 @@
       <section class="card demo-card" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(147, 51, 234, 0.1)); border: 1px solid rgba(59, 130, 246, 0.3);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <h2 style="font-size: 1rem; margin-bottom: 0;">🎬 OPEN//BUILD 2026 Demo Scenarios (Team Polygon)</h2>
-          <button type="button" id="toggleDemoBtn" class="btn secondary-btn" style="font-size: 0.75rem; padding: 4px 10px;">Hide 🔼</button>
+          <button type="button" id="toggleDemoBtn" class="btn secondary-btn" style="font-size: 0.75rem; padding: 4px 10px;">Show 🔽</button>
         </div>
-        <div id="demoContentWrapper">
+        <div id="demoContentWrapper" hidden>
           <p style="font-size: 0.85rem; margin-bottom: 12px; color: #94a3b8;">Click any scene scenario to instantly test troubleshooting, safety guardrails, maintenance reports, acoustic analysis, and outage broadcasting:</p>
           <div class="demo-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button type="button" id="demoScene3" class="btn secondary-btn" style="font-size: 0.8rem; padding: 6px 12px; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3);">⚡ Scene 3: Outlet Sparking</button>
@@ -187,15 +187,22 @@
         <!-- Maintenance Report Output -->
         <div class="report-section">
           <div class="report-header">
-            <h3>📋 Maintenance Report & Location Broadcast</h3>
+            <h3>📋 Maintenance Report, Location & Status</h3>
             <div class="report-actions">
               <button type="button" id="broadcastBtn" class="btn secondary-btn broadcast-btn">Broadcast Notice</button>
               <button type="button" id="copyBtn" class="btn secondary-btn">Copy Report</button>
             </div>
           </div>
+          <div class="form-group" style="margin-bottom: 12px; max-width: 260px;">
+            <label for="outageStatusSelect">Outage Resolution Status <span class="required">*</span></label>
+            <select id="outageStatusSelect" style="width: 100%; margin-top: 4px; padding: 8px 12px; background: rgba(2, 6, 23, 0.8); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-heading); font-size: 0.85rem;">
+              <option value="Active / Unfixed">🔴 Active Outage (Unfixed)</option>
+              <option value="Resolved / Fixed">🟢 Resolved (Fixed)</option>
+            </select>
+          </div>
           <textarea id="reportTextarea" readonly rows="6"></textarea>
           <span id="copyFeedback" class="copy-feedback" hidden>Copied to clipboard!</span>
-          <span id="broadcastFeedback" class="copy-feedback" hidden>Broadcasted to outage stream with user location!</span>
+          <span id="broadcastFeedback" class="copy-feedback" hidden>Broadcasted to outage stream with status!</span>
         </div>
 
         <div class="model-meta">

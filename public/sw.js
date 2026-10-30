@@ -2,7 +2,7 @@
  * CampusFix AI - Service Worker for PWA Offline Caching (v3)
  */
 
-const CACHE_NAME = 'campusfix-v1.111';
+const CACHE_NAME = 'campusfix-v1.101';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

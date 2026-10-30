@@ -303,6 +303,16 @@ async function runTests() {
   assert.strictEqual(outageJson.success, true);
   console.log('✅ Outage broadcast endpoint test passed.');
 
+  // Test Outage Broadcast API Endpoint with Resolved / Fixed status
+  const resolvedOutageData = await httpRequest('POST', `http://localhost:${testPort}/api/outages/report`, {
+    category: 'plumbing',
+    description: 'Test fixed water leak',
+    urgency: 'Medium',
+    status: 'Resolved / Fixed'
+  });
+  assert.strictEqual(resolvedOutageData.status, 200);
+  console.log('✅ Resolved outage broadcast endpoint test passed.');
+
   // Test Invalid Outage Category (400)
   const badOutageData = await httpRequest('POST', `http://localhost:${testPort}/api/outages/report`, {
     category: 'invalid-cat',

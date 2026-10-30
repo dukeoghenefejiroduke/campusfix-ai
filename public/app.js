@@ -68,7 +68,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const item = document.createElement('div');
     item.className = 'mesh-alert-item';
     const locText = alert.location ? `📍 ${alert.location}` : '';
-    item.innerHTML = `<div><strong>[${alert.category.toUpperCase()}]</strong> ${alert.description} <div style="font-size: 0.75rem; color: #38bdf8; margin-top: 2px;">${locText}</div></div> <span style="font-size:0.75rem; color:#94a3b8; white-space:nowrap; margin-left: 8px;">${new Date(alert.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span>`;
+    const statusVal = alert.status || 'Active / Unfixed';
+    const isResolved = statusVal === 'Resolved / Fixed';
+    const statusBadgeText = isResolved ? '🟢 Resolved (Fixed)' : '🔴 Active Outage (Unfixed)';
+    const statusBg = isResolved ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+    const statusColor = isResolved ? '#4ade80' : '#f87171';
+    const statusBadge = `<span style="font-size: 0.75rem; background: ${statusBg}; color: ${statusColor}; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: 500;">${statusBadgeText}</span>`;
+
+    item.innerHTML = `<div><strong>[${alert.category.toUpperCase()}]</strong> ${alert.description} <div style="font-size: 0.75rem; color: #38bdf8; margin-top: 2px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">${locText ? `<span>${locText}</span>` : ''} ${statusBadge}</div></div> <span style="font-size:0.75rem; color:#94a3b8; white-space:nowrap; margin-left: 8px;">${new Date(alert.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span>`;
     meshTicker.prepend(item);
 
     while (meshTicker.children.length > 5) {
@@ -328,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const reportTextarea = document.getElementById('reportTextarea');
   const copyBtn = document.getElementById('copyBtn');
   const broadcastBtn = document.getElementById('broadcastBtn');
+  const outageStatusSelect = document.getElementById('outageStatusSelect');
   const copyFeedback = document.getElementById('copyFeedback');
   const broadcastFeedback = document.getElementById('broadcastFeedback');
   const modelMetaText = document.getElementById('modelMetaText');
@@ -438,12 +446,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const locationStr = locationInput ? locationInput.value.trim() : 'Campus-wide';
+    const statusVal = outageStatusSelect ? outageStatusSelect.value : 'Active / Unfixed';
 
     const reportContent = [
       `=== CAMPUSFIX AI MAINTENANCE REPORT ===`,
       `Timestamp: ${new Date(data.timestamp).toLocaleString()}`,
       `Category: ${inputMeta.category.toUpperCase()}`,
       `Urgency Level: ${data.urgency.toUpperCase()}`,
+      `Outage Resolution Status: ${statusVal}`,
       `Location: ${locationStr}`,
       ``,
       `[PROBLEM DESCRIPTION]`,
@@ -491,6 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
   broadcastBtn.addEventListener('click', async () => {
     if (!lastDiagnosisData) return;
     const locationVal = locationInput ? locationInput.value.trim() : 'Campus-wide';
+    const statusVal = outageStatusSelect ? outageStatusSelect.value : 'Active / Unfixed';
     try {
       await fetch('/api/outages/report', {
         method: 'POST',
@@ -499,7 +510,8 @@ document.addEventListener('DOMContentLoaded', () => {
           category: lastDiagnosisData.inputMeta.category,
           description: lastDiagnosisData.inputMeta.description,
           urgency: lastDiagnosisData.data.urgency,
-          location: locationVal
+          location: locationVal,
+          status: statusVal
         })
       });
       broadcastFeedback.hidden = false;

@@ -67,7 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const item = document.createElement('div');
     item.className = 'mesh-alert-item';
-    item.innerHTML = `<span><strong>[${alert.category.toUpperCase()}]</strong> ${alert.description}</span> <span style="font-size:0.75rem; color:#64748b;">${new Date(alert.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span>`;
+    const locText = alert.location ? `📍 ${alert.location}` : '';
+    item.innerHTML = `<div><strong>[${alert.category.toUpperCase()}]</strong> ${alert.description} <div style="font-size: 0.75rem; color: #38bdf8; margin-top: 2px;">${locText}</div></div> <span style="font-size:0.75rem; color:#94a3b8; white-space:nowrap; margin-left: 8px;">${new Date(alert.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span>`;
     meshTicker.prepend(item);
 
     while (meshTicker.children.length > 5) {
@@ -76,6 +77,84 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   initMeshStream();
+
+  // OPEN//BUILD 2026 Demo Scenarios toggle hide & show
+  const toggleDemoBtn = document.getElementById('toggleDemoBtn');
+  const demoContentWrapper = document.getElementById('demoContentWrapper');
+
+  if (toggleDemoBtn && demoContentWrapper) {
+    toggleDemoBtn.addEventListener('click', () => {
+      const isHidden = demoContentWrapper.hidden;
+      demoContentWrapper.hidden = !isHidden;
+      toggleDemoBtn.textContent = isHidden ? 'Hide 🔼' : 'Show 🔽';
+    });
+  }
+
+  // OPEN//BUILD 2026 Demo Scenarios helper
+  const demoScene3 = document.getElementById('demoScene3');
+  const demoScene4 = document.getElementById('demoScene4');
+  const demoScene5 = document.getElementById('demoScene5');
+  const symptomsInput = document.getElementById('symptoms');
+  const startDateInput = document.getElementById('startDate');
+
+  if (demoScene3) {
+    demoScene3.addEventListener('click', () => {
+      document.querySelectorAll('.category-tile').forEach(t => t.classList.remove('selected'));
+      const tile = document.querySelector('.category-tile[data-value="electrical"]');
+      if (tile) tile.classList.add('selected');
+      categoryInput.value = 'electrical';
+      descriptionInput.value = 'An electrical outlet is sparking.';
+      if (symptomsInput) symptomsInput.value = 'sparking, crackling sounds';
+      if (startDateInput) startDateInput.value = 'Just now';
+      if (locationInput) {
+        locationInput.value = 'Science Complex, Room 302';
+        if (locationInputWrapper) locationInputWrapper.hidden = false;
+        if (autoLocationBadge) autoLocationBadge.hidden = true;
+      }
+      form.requestSubmit();
+    });
+  }
+
+  if (demoScene4) {
+    demoScene4.addEventListener('click', () => {
+      document.querySelectorAll('.category-tile').forEach(t => t.classList.remove('selected'));
+      const tile = document.querySelector('.category-tile[data-value="plumbing"]');
+      if (tile) tile.classList.add('selected');
+      categoryInput.value = 'plumbing';
+      descriptionInput.value = 'Water pipe leaking slowly under cafeteria sink cabinet.';
+      if (symptomsInput) symptomsInput.value = 'dripping water, pooling';
+      if (startDateInput) startDateInput.value = 'Today at 9 AM';
+      if (locationInput) {
+        locationInput.value = 'Student Center Cafeteria, Floor 1';
+        if (locationInputWrapper) locationInputWrapper.hidden = false;
+        if (autoLocationBadge) autoLocationBadge.hidden = true;
+      }
+      form.requestSubmit();
+    });
+  }
+
+  if (demoScene5) {
+    demoScene5.addEventListener('click', () => {
+      document.querySelectorAll('.category-tile').forEach(t => t.classList.remove('selected'));
+      const tile = document.querySelector('.category-tile[data-value="cooling"]');
+      if (tile) tile.classList.add('selected');
+      categoryInput.value = 'cooling';
+      descriptionInput.value = 'Air handler unit making high-frequency whistling sound.';
+      if (symptomsInput) symptomsInput.value = 'whistling, warm air';
+      if (startDateInput) startDateInput.value = 'Yesterday afternoon';
+      if (locationInput) {
+        locationInput.value = 'Engineering Hall, Lab 402';
+        if (locationInputWrapper) locationInputWrapper.hidden = false;
+        if (autoLocationBadge) autoLocationBadge.hidden = true;
+      }
+      window._lastAcousticSignature = {
+        peakFrequencyHz: 3094,
+        acousticClassification: 'High-Frequency Peak. Possible air or fluid flow whistle.',
+        measurementAvailable: true
+      };
+      form.requestSubmit();
+    });
+  }
 
   // Acoustic Audio Spectrogram Analyzer (Web Audio API + Canvas)
   const recordAudioBtn = document.getElementById('recordAudioBtn');
@@ -170,6 +249,67 @@ document.addEventListener('DOMContentLoaded', () => {
       recordAudioBtn.disabled = false;
     }
   });
+
+  // Geolocation auto-detect on page load (tries auto location first; hides manual input if successful, shows manual input if it fails)
+  const locationInput = document.getElementById('locationInput');
+  const locationInputWrapper = document.getElementById('locationInputWrapper');
+  const autoLocateBtn = document.getElementById('autoLocateBtn');
+  const autoLocationBadge = document.getElementById('autoLocationBadge');
+  const autoLocationText = document.getElementById('autoLocationText');
+  const changeLocationBtn = document.getElementById('changeLocationBtn');
+
+  function attemptAutoLocation(onSuccess, onFailure) {
+    if (!navigator.geolocation) {
+      if (onFailure) onFailure();
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude.toFixed(4);
+        const lon = position.coords.longitude.toFixed(4);
+        const detectedLoc = `GPS Pin: (${lat}, ${lon}) - Campus Zone`;
+        locationInput.value = detectedLoc;
+        autoLocationText.textContent = `📍 Auto-located: ${detectedLoc}`;
+        locationInputWrapper.hidden = true;
+        autoLocationBadge.hidden = false;
+        if (onSuccess) onSuccess(detectedLoc);
+      },
+      (error) => {
+        locationInputWrapper.hidden = false;
+        autoLocationBadge.hidden = true;
+        if (onFailure) onFailure(error);
+      },
+      { timeout: 8000, enableHighAccuracy: true }
+    );
+  }
+
+  // Attempt auto-location on page load
+  attemptAutoLocation(null, () => {
+    locationInputWrapper.hidden = false;
+    autoLocationBadge.hidden = true;
+  });
+
+  if (autoLocateBtn && locationInput && autoLocationBadge && locationInputWrapper) {
+    autoLocateBtn.addEventListener('click', () => {
+      autoLocateBtn.textContent = 'Locating...';
+      attemptAutoLocation(
+        () => { autoLocateBtn.textContent = '📍 Auto-Detect GPS'; },
+        () => {
+          alert('Auto-location failed. Please enter your location manually.');
+          autoLocateBtn.textContent = '📍 Auto-Detect GPS';
+        }
+      );
+    });
+
+    if (changeLocationBtn) {
+      changeLocationBtn.addEventListener('click', () => {
+        locationInputWrapper.hidden = false;
+        autoLocationBadge.hidden = true;
+        locationInput.value = '';
+        locationInput.focus();
+      });
+    }
+  }
 
   const form = document.getElementById('diagnoseForm');
   const submitBtn = document.getElementById('submitBtn');
@@ -297,11 +437,14 @@ document.addEventListener('DOMContentLoaded', () => {
       modelMetaText.textContent = `${data.modelInfo.provider} (${data.modelInfo.model}) — Mode: ${data.modelInfo.mode}`;
     }
 
+    const locationStr = locationInput ? locationInput.value.trim() : 'Campus-wide';
+
     const reportContent = [
       `=== CAMPUSFIX AI MAINTENANCE REPORT ===`,
       `Timestamp: ${new Date(data.timestamp).toLocaleString()}`,
       `Category: ${inputMeta.category.toUpperCase()}`,
       `Urgency Level: ${data.urgency.toUpperCase()}`,
+      `Location: ${locationStr}`,
       ``,
       `[PROBLEM DESCRIPTION]`,
       inputMeta.description,
@@ -347,6 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   broadcastBtn.addEventListener('click', async () => {
     if (!lastDiagnosisData) return;
+    const locationVal = locationInput ? locationInput.value.trim() : 'Campus-wide';
     try {
       await fetch('/api/outages/report', {
         method: 'POST',
@@ -354,7 +498,8 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           category: lastDiagnosisData.inputMeta.category,
           description: lastDiagnosisData.inputMeta.description,
-          urgency: lastDiagnosisData.data.urgency
+          urgency: lastDiagnosisData.data.urgency,
+          location: locationVal
         })
       });
       broadcastFeedback.hidden = false;

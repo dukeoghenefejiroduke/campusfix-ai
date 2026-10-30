@@ -1,6 +1,6 @@
 {
   "name": "campusfix-ai",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "CampusFix AI — an open-weight AI assistant for safe troubleshooting of everyday campus equipment problems.",
   "private": true,
   "license": "MIT",

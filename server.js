@@ -208,6 +208,15 @@ const server = http.createServer(async (req, res) => {
           ? alert.urgency.trim()
           : 'Medium';
 
+        const location = typeof alert.location === 'string' && alert.location.trim().length > 0
+          ? alert.location.trim().slice(0, 150)
+          : 'Campus-wide / Unspecified Location';
+
+        const allowedStatuses = ['Active / Unfixed', 'Resolved / Fixed'];
+        const status = typeof alert.status === 'string' && allowedStatuses.includes(alert.status.trim())
+          ? alert.status.trim()
+          : 'Active / Unfixed';
+
         if (!allowedCategories.includes(category)) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ error: 'Invalid outage category.' }));
@@ -231,6 +240,8 @@ const server = http.createServer(async (req, res) => {
           category,
           description,
           urgency,
+          location,
+          status,
           timestamp: new Date().toISOString()
         };
 
